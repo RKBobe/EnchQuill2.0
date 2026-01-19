@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB Database
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  # 2. Backend API
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      # Notice we use 'mongodb' (service name) instead of 'localhost'
+      MONGO_URI: mongodb://admin:secret@mongodb:27017/enchanted_quill?authSource=admin
+      PORT: 5000
+    depends_on:
+      - mongodb
+
+  # 3. Frontend React App
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Use this to fix React 'Invalid Host Header' issues in Docker
+      WDS_SOCKET_PORT: 0
+    stdin_open: true # Needed for React scripts
+    tty: true        # Needed for React scripts
+    depends_on:
+      - backend
+
+volumes:
+  mongo-data:
