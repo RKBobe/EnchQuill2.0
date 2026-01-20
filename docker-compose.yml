@@ -35,8 +35,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Use this to fix React 'Invalid Host Header' issues in Docker
-      WDS_SOCKET_PORT: 0
+      - WDS_SOCKET_PORT=0
+      - REACT_APP_API_URL=http://backend:5000/api/books
     stdin_open: true # Needed for React scripts
     tty: true        # Needed for React scripts
     depends_on:
