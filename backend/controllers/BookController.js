@@ -18,6 +18,7 @@ exports.getBooks = async (req, res) => {
     // Map MongoDB's _id to a cleaner 'id' for the frontend (although id is ommitted here,
     // the mapping ensures only necessary fields are returned).)
     const formattedBooks = books.map(book => ({
+      id: book._id,
       isbn: book.isbn, 
       title: book.title,
       author: book.author,
@@ -45,7 +46,7 @@ exports.createBook = async (req, res) => {
     // Create a new book document in the database
     const newBook = await Book.create(req.body);
     // Return the new book with the 'id' field
-    res.status(201).json({ ...newBook._doc, isbn: newBook._isbn });
+    res.status(201).json({ ...newBook._doc, id: newBook._id });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -59,8 +60,8 @@ exports.updateBook = async (req, res) => {
     // find the book by ISBN and update it with the new data
     // and update it with the data from req.body
     // { new: true } returns the updated document
-    const updatedBook = await Book.findByIsbnAndUpdate(
-      req.params.isbn, 
+    const updatedBook = await Book.findByIdAndUpdate(
+      req.params.id, 
       req.body, 
       { new: true }
     );
@@ -70,7 +71,7 @@ exports.updateBook = async (req, res) => {
   } catch (error) {
 
     // Handle errors, such as validation errors or if the book is not found.
-    res.status(400).json({ message: error.message });
+    res.status(404).json({ message: error.message });
   }
 };
 
@@ -80,12 +81,14 @@ exports.updateBook = async (req, res) => {
 exports.deleteBook = async (req, res) => {
   try {
     // find the book by ISBN and delete it
-    await Book.findByIsbnAndDelete(req.params.isbn);
+    const deleted = await Book.findByIdAndDelete(req.params.id);
 
-    // respond with a success message
-    res.json({ message: 'Book deleted' });
+    if (!deleted) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    res.json({ message: 'Book deleted', id: req.params.id });
   } catch (error) {
-    // Handle errors, such as if the book is not found.
     res.status(500).json({ message: error.message });
   }
 };
