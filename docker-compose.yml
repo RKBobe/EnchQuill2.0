@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. MongoDB Database
   mongodb:
@@ -39,6 +37,17 @@ services:
       - REACT_APP_API_URL=http://backend:5000/api/books
     stdin_open: true # Needed for React scripts
     tty: true        # Needed for React scripts
+    depends_on:
+      - backend
+
+  # 4. Frontend Consumer App
+  frontend-consumer:
+    build: ./frontend-consumer
+    container_name: frontend-consumer
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_REACT_APP_API_URL=http://backend:5000/api/books
     depends_on:
       - backend
 
