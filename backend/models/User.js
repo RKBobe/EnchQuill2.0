@@ -1,4 +1,4 @@
-const mongooose = require('mongoose');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
@@ -9,12 +9,14 @@ const UserSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Helper: Encrypt password before saving user
-UserSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
+UserSchema.pre('save', async function () { 
+    // If password wasn't changed, do nothing
+    if (!this.isModified('password')) return;
+    
+    // Encrypt the password
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
-});
+  });
 
 //Helper: Check if password matches
 UserSchema.methods.matchPassword = async function (enteredPassword) {

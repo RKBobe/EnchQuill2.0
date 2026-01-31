@@ -22,6 +22,15 @@ const BookSchema = new mongoose.Schema({
     type: Number,
     required: true,
     default: 1
+  },
+  description: {
+    type: String,
+    required: false,
+  },
+  category: {
+    type: String,
+    required: false,
+    default: 'General'
   }
 });
 

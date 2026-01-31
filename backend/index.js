@@ -1,21 +1,26 @@
-const http = require('http');
-const { WebSocketServer } = require('ws');
-const createApp = require('./server');
+const express = require('express');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const connectDB = require('./config/db');
 
-const server = http.createServer();
-const wss = new WebSocketServer({ server });
+// Import Routes
+const bookRoutes = require('./routes/bookRoutes');
+const userRoutes = require('./routes/userRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
-const app = createApp(wss);
-server.on('request', app);
+dotenv.config();
+connectDB();
 
-wss.on('connection', (ws) => {
-  console.log('Client connected');
-  ws.on('close', () => {
-    console.log('Client disconnected');
-  });
-});
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Mount Routes
+app.use('/api/books', bookRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 
-module.exports = { wss };
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
