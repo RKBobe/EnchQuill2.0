@@ -18,7 +18,7 @@ const addOrderItems = async (req, res) => {
   } else {
     const order = new Order({
       orderItems,
-      user: req.user._id, // This comes from the 'protect' middleware
+      user: req.user._id,
       shippingAddress,
       paymentMethod,
       totalPrice,
@@ -30,9 +30,44 @@ const addOrderItems = async (req, res) => {
   }
 };
 
+// @desc    Get logged in user orders
+// @route   GET /api/orders/myorders
+// @access  Private
 const getMyOrders = async (req, res) => {
-    const orders = await Order.find({ user: req.user._id });
-    res.json(orders);
+  const orders = await Order.find({ user: req.user._id });
+  res.json(orders);
 };
 
-module.exports = { addOrderItems, getMyOrders };
+// @desc    Get all orders
+// @route   GET /api/orders
+// @access  Private/Admin
+const getOrders = async (req, res) => {
+  const orders = await Order.find({}).populate('user', 'id name');
+  res.json(orders);
+};
+
+// @desc    Update order to delivered
+// @route   PUT /api/orders/:id/deliver
+// @access  Private/Admin
+const updateOrderToDelivered = async (req, res) => {
+  const order = await Order.findById(req.params.id);
+
+  if (order) {
+    order.isDelivered = true;
+    order.deliveredAt = Date.now();
+
+    const updatedOrder = await order.save();
+    res.json(updatedOrder);
+  } else {
+    res.status(404);
+    throw new Error('Order not found');
+  }
+};
+
+// EXPORT ALL 4 FUNCTIONS
+module.exports = {
+  addOrderItems,
+  getMyOrders,
+  getOrders,
+  updateOrderToDelivered,
+};

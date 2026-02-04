@@ -1,17 +1,10 @@
-const User = require('../models/User');
-const jwt = require('jsonwebtoken');
-
-// Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret_key', {
-    expiresIn: '30d',
-  });
-};
+const asyncHandler = require('express-async-handler');
+const User = require('../models/userModel');
+const generateToken = require('../utils/generateToken'); 
 
 // @desc    Auth user & get token
 // @route   POST /api/users/login
-// @access  Public
-const authUser = async (req, res) => {
+const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
 
@@ -20,35 +13,38 @@ const authUser = async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
-      isAdmin: user.isAdmin,
+      isAdmin: user.isAdmin, // Sends "TRUE" or "FALSE" to the frontend
       token: generateToken(user._id),
     });
   } else {
-    res.status(401).json({ message: 'Invalid email or password' });
+    res.status(401);
+    throw new Error('Invalid email or password');
   }
-};
+});
 
 // @desc    Register a new user
 // @route   POST /api/users
-// @access  Public
-const registerUser = async (req, res) => {
+const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
-
-  // 1. Check if user already exists
   const userExists = await User.findOne({ email });
 
   if (userExists) {
-    return res.status(400).json({ message: 'User already exists' });
+    res.status(400);
+    throw new Error('User already exists');
   }
 
-  // 2. Create the user
+  // --- TEMPORARY: FORCE ADMIN ---
+  // The next user created will be an ADMIN. 
+  // Change this to false later.
+  const forceAdmin = true; 
+
   const user = await User.create({
     name,
     email,
     password,
+    isAdmin: forceAdmin 
   });
 
-  // 3. Respond with the new user info & token
   if (user) {
     res.status(201).json({
       _id: user._id,
@@ -58,8 +54,9 @@ const registerUser = async (req, res) => {
       token: generateToken(user._id),
     });
   } else {
-    res.status(400).json({ message: 'Invalid user data' });
+    res.status(400);
+    throw new Error('Invalid user data');
   }
-};
+});
 
 module.exports = { authUser, registerUser };

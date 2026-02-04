@@ -1,17 +1,18 @@
-// import the Mongoose library, which provides an elegant way to interact with MongoDB
-// by providing a schema-based solution to model application data.
-
 const mongoose = require('mongoose');
 
-const connectDB = async (uri) => {
+const connectDB = async () => {
+  const connString = process.env.MONGO_URI;
+  
+  console.log(`Attempting to connect to: ${connString}`);
+
   try {
-    const connectionUri = uri || process.env.MONGO_URI || 'mongodb://localhost:27017/enchanted_quill?authSource=admin';
-    const conn = await mongoose.connect(connectionUri);
+    const conn = await mongoose.connect(connString);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
-    return conn;
   } catch (error) {
     console.error(`Error: ${error.message}`);
-    process.exit(1);
+    console.log("Retrying connection in 5 seconds...");
+    // Instead of process.exit(1), wait and try again
+    setTimeout(connectDB, 5000);
   }
 };
 

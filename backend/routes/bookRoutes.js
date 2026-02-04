@@ -1,34 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const Book = require('../models/Book');
+const {
+  getBooks,
+  getBookById,
+  deleteBook,
+  updateBook,
+  createBook,
+} = require('../controllers/bookController');
 
-// @desc    Fetch all books
-// @route   GET /api/books
-// @access  Public
-router.get('/', async (req, res) => {
-  try {
-    const books = await Book.find({});
-    res.json(books);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
-  }
-});
+const { protect } = require('../middleware/authMiddleware');
+const { admin } = require('../middleware/adminMiddleware');
 
-// @desc    Fetch single book (Optional, but good to have)
-// @route   GET /api/books/:id
-// @access  Public
-router.get('/:id', async (req, res) => {
-  try {
-    const book = await Book.findById(req.params.id);
-    if (book) {
-      res.json(book);
-    } else {
-      res.status(404).json({ message: 'Book not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
-  }
-});
+// Public: Everyone can see books
+// Private/Admin: Only Admin can create a book
+router.route('/')
+  .get(getBooks)
+  .post(protect, admin, createBook); 
+
+// Public: Everyone can see one book
+// Private/Admin: Only Admin can delete or update
+router.route('/:id')
+  .get(getBookById)
+  .delete(protect, admin, deleteBook)
+  .put(protect, admin, updateBook);
 
 module.exports = router;

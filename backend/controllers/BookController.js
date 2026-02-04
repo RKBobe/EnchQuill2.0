@@ -1,107 +1,90 @@
-// file_path: D:\cortex_archive\temp_repos\backend\controllers\BookController.js
-
-//Import the Book Mongoose model, which defines the structure and methods for book data.
-
+const asyncHandler = require('express-async-handler');
 const Book = require('../models/Book');
 
-
-
-// @route   GET /api/books
-/**
- * retrieves all books from the database and returns them in JSON format.
-  */
 // @desc    Get all books
 // @route   GET /api/books
-exports.getBooks = async (req, res) => {
-  try {
-    const books = await Book.find();
-    
-    console.log(`✅ Found ${books.length} books in DB`); // Log success
+const getBooks = asyncHandler(async (req, res) => {
+  const books = await Book.find({});
+  res.json(books);
+});
 
-    // Fix: Send BOTH 'id' and '_id' so Frontend doesn't break
-    const formattedBooks = books.map(book => {
-      const bookObj = book.toObject(); // Convert to plain object
-      return {
-        ...bookObj,       // Include all fields (title, price, description)
-        id: book._id,     // Add 'id' (clean)
-        _id: book._id     // KEEP '_id' (for React key={book._id})
-      };
-    });
-
-    res.json(formattedBooks);
-  } catch (error) {
-    // THIS IS THE FIX: Actually log the error to the terminal!
-    console.error("🔥 DATABASE ERROR:", error); 
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc    Get a single book by ID
+// @desc    Get book by ID
 // @route   GET /api/books/:id
-exports.getBookById = async (req, res) => {
-  try {
-    const book = await Book.findById(req.params.id);
-    if (!book) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-    res.json({ ...book._doc, id: book._id });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+const getBookById = asyncHandler(async (req, res) => {
+  const book = await Book.findById(req.params.id);
+  if (book) {
+    res.json(book);
+  } else {
+    res.status(404);
+    throw new Error('Book not found');
   }
-};
+});
 
-// @desc    Create a book
+// @desc    Create a new book
 // @route   POST /api/books
-/**
- * Create a new Book document using the data sent in req.body.
- * @param {} req 
- * @param {*} res 
- */
-exports.createBook = async (req, res) => {
-  try {
-    const newBook = await Book.create(req.body);
-    req.wss.clients.forEach(client => {
-      if (client.readyState === 1) { // 1 is for OPEN
-        client.send(JSON.stringify({ event: 'booksUpdated' }));
-      }
-    });
-    res.status(201).json({ ...newBook._doc, id: newBook._id });
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
+const createBook = asyncHandler(async (req, res) => {
+  const { bookID, isbn, title, author, price, quantity, category } = req.body;
 
-exports.updateBook = async (req, res) => {
-  try {
-    const updatedBook = await Book.findByIdAndUpdate(
-      req.params.id, 
-      req.body, 
-      { new: true }
-    );
-    req.wss.clients.forEach(client => {
-      if (client.readyState === 1) {
-        client.send(JSON.stringify({ event: 'booksUpdated' }));
-      }
-    });
+  const bookExists = await Book.findOne({ $or: [{ bookID }, { isbn }] });
+  if (bookExists) {
+    res.status(400);
+    throw new Error('A book with this ID or ISBN already exists');
+  }
+
+  const book = await Book.create({
+    bookID,
+    isbn,
+    title,
+    author,
+    price,
+    quantity: quantity || 0,
+    category: category || 'General'
+  });
+
+  res.status(201).json(book);
+});
+
+// @desc    Update a book
+// @route   PUT /api/books/:id
+const updateBook = asyncHandler(async (req, res) => {
+  const { bookID, isbn, title, author, price, quantity, category } = req.body;
+  const book = await Book.findById(req.params.id);
+
+  if (book) {
+    book.bookID = bookID || book.bookID;
+    book.isbn = isbn || book.isbn;
+    book.title = title || book.title;
+    book.author = author || book.author;
+    book.price = price || book.price;
+    book.quantity = quantity || book.quantity;
+    book.category = category || book.category;
+
+    const updatedBook = await book.save();
     res.json(updatedBook);
-  } catch (error) {
-    res.status(404).json({ message: error.message });
+  } else {
+    res.status(404);
+    throw new Error('Book not found');
   }
-};
+});
 
-exports.deleteBook = async (req, res) => {
-  try {
-    const deleted = await Book.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ message: 'Book not found' });
-    }
-    req.wss.clients.forEach(client => {
-      if (client.readyState === 1) {
-        client.send(JSON.stringify({ event: 'booksUpdated' }));
-      }
-    });
-    res.json({ message: 'Book deleted', id: req.params.id });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+// @desc    Delete a book
+// @route   DELETE /api/books/:id
+const deleteBook = asyncHandler(async (req, res) => {
+  const book = await Book.findById(req.params.id);
+
+  if (book) {
+    await book.deleteOne();
+    res.json({ message: 'Book removed successfully' });
+  } else {
+    res.status(404);
+    throw new Error('Book not found');
   }
+});
+
+module.exports = {
+  getBooks,
+  getBookById,
+  createBook,
+  updateBook,
+  deleteBook
 };
