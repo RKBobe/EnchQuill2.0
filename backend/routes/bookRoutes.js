@@ -6,7 +6,7 @@ const {
   deleteBook,
   updateBook,
   createBook,
-} = require('../controllers/bookController');
+} = require('../controllers/BookController');
 
 const { protect } = require('../middleware/authMiddleware');
 const { admin } = require('../middleware/adminMiddleware');
